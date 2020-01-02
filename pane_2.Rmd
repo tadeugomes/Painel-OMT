@@ -5,6 +5,8 @@ output:
     storyboard: true
     fig_mobile: true
     theme: cerulean
+    social: [ "twitter", "facebook", "linkedin", "instagram", "menu"]
+
 ---
 
 ```{r}
@@ -142,7 +144,7 @@ plot2<- ggplot(pessoas_sub_ma, aes(x=Trimestre, y=Valor, color = Condicao, group
  theme_bw()+ theme(axis.text.x=element_text(angle=90, hjust=1))+
   theme(legend.title = element_text(size=14, color = "#4169e1"))+
   theme(legend.position="bottom")+
-  theme(plot.title = element_text(size=22, color = "#4169e1"))
+  theme(plot.title = element_text(size=16, color = "#4169e1"))
 
 
 ggplotly(plot2)
@@ -187,7 +189,7 @@ plot3<- ggplot(Setor, aes(x=Trimestre, y=Valor, color = Atividade, group=1))+
        color="Clique para selecionar/apagar uma opção")+
   theme_bw()+ theme(axis.text.x=element_text(angle=90, hjust=1))+
   theme(legend.title = element_text(size=14, color = "#4169e1"),
-        plot.title = element_text(size=22, color = "#4169e1"))
+        plot.title = element_text(size=16, color = "#4169e1"))
 
 ggplotly(plot3)
 
