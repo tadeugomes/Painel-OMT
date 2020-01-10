@@ -1,0 +1,228 @@
+---
+title: "Panorama do Mercado de Trabalho no Maranhão"
+output: 
+  flexdashboard::flex_dashboard:
+    storyboard: true
+    fig_mobile: true
+    theme: cerulean
+    social: [ "twitter", "facebook", "linkedin", "instagram", "menu"]
+
+---
+
+
+```{css, echo=FALSE}
+/* Whole document: */
+body{
+  font-family: Helvetica;
+  font-size: 12pt;
+  color: blue;
+}
+
+```
+
+
+```{r}
+library(flexdashboard)
+library(sidrar)
+library(tidyverse)
+library(plotly)
+library(highcharter)
+library(tidyr)
+library(scales)
+```
+## Observatório do Mercado de Trabalho do Maranhão (OMT-MA)
+
+
+### __Taxa de Desemprego por Estado__
+
+```{r}
+dtaxauf<- get_sidra(api ='/t/4093/n1/all/n3/all/v/1641,4099/p/all/c2/6794/d/v4099%201')
+taxa<-dtaxauf %>% 
+  select(`Brasil e Unidade da Federação`, `Variável`, `Valor`, `Trimestre (Código)`) %>% 
+  filter(`Brasil e Unidade da Federação` != "Brasil") %>% 
+  filter(`Variável` == "Taxa de desocupação, na semana de referência, das pessoas de 14 anos ou mais de idade") %>% 
+  filter(`Trimestre (Código)`==201903)
+taxa<-taxa %>% 
+  select(`Brasil e Unidade da Federação`, `Valor`) %>% 
+  dplyr::rename(UF= `Brasil e Unidade da Federação`, Taxa = `Valor`) %>% 
+  arrange(Taxa)
+hcmap("https://code.highcharts.com/mapdata/countries/br/br-all.js", data = taxa, value = "Taxa",
+      joinBy = c("woe-name", "UF"), name = "Taxa de Desemprego",
+      dataLabels = list(enabled = TRUE, format = '{point.name}'),
+      borderColor = "#FAFAFA", borderWidth = 0.1,
+      tooltip = list(valueDecimals = 1, valueSuffix = "%")) %>% 
+      hc_title(text = "</b>Taxa de desocupação nos Estados - Mapa Interativo</b>", style = list(color = "#4169e1"))
+```
+
+*** 
+
+O mercado de trabalho brasileiro tem sido caracterizado, desde 2014, por altas taxas de desemprego. Essa situação, contudo, é distribuída desigualmente pelo território nacional. Alguns **destaques** do 3º trimestre de 2019: 
+
++ A Bahia apresenta a maior taxa de desemprego, 16,8%, sendo seguido pelo Amapá (16,7%);
+
++ Os estados do Norte e Nordeste, de forma geral, apresentam as maiores taxas de desemprego, enquanto os estados do Sul têm obtido melhores resultados, sendo o estado o de Santa Catarina o que apresenta o melhor resultado (5,8%). 
+
++ O *Maranhão* teve uma taxa de desemprego de 14.1% no 3º trimestre de 2019, estando no grupo que apresenta as mais altas taxas do país.
+
++ Santa Catarina, no Sul, apresenta taxa de desocupação próxima ao pleno emprego, de 5,8%, sendo o estado com a menor taxa de desemprego do país. 
+
+
+
+### __Evolução da Taxa de Desemprego no Maranhão__
+
+
+```{r}
+dados<-get_sidra(api = '/t/4093/n3/21/v/4088,4092,4099/p/all/c2/6794/d/v4099%201') 
+dados<-dados %>%  
+  dplyr::rename(Trimestres = `Trimestre (Código)`) %>%  
+  dplyr::rename(Trimestre = `Trimestre`)
+taxa<-dados %>%  
+  filter(`Variável`=="Taxa de desocupação, na semana de referência, das pessoas de 14 anos ou mais de idade") 
+taxa$Trimestre <- factor(taxa$Trimestre, levels = taxa$Trimestre[order(taxa$Trimestres)])
+plot1<- ggplot(taxa, aes(x=Trimestre, y=Valor, group = 1))+ 
+  geom_line()+ 
+  xlab('')+ylab('Taxa de Desocupação (%)')+ 
+  geom_point(size=8, color = "lightblue")+ 
+   geom_text(aes(label=prettyNum(Valor, big.mark = ".", decimal.mark =",")), size =2.5,  
+            hjust=0.5, vjust=0.5, colour="black")+
+  labs(title='Evolução da Taxa de Desocupação no Maranhão - Gráfico Interativo', 
+       subtitle = "Taxa diminuiu para 14.6%", 
+       caption='Fonte: PNAD Contínua/IBGE. Elaboração: OMT-MA.')+ 
+  theme_bw()+ theme(axis.text.x=element_text(angle=90, hjust=1))+
+  theme(plot.title = element_text(color = "#4169e1"))
+ggplotly(plot1)
+```
+
+*** 
+
+- A População sem ocupação no Estado do Maranhão teve uma redução no 3º trimestre em relação ao 2º trim. de 2019, mantendo a tendência de queda desde o 1º trimestre de 2019. Com isso, a taxa de desocupação diminuiu, baixando para 14.1%. 
+
+### __Condição da Força de Trabalho Maranhense__
+
+```{r, warning=FALSE, message=FALSE}
+subocupado<-get_sidra(api="/t/4100/n3/21/n6/2111300/v/1641,4104/p/all/c604/31750,31751,31752/d/v4104%201")
+subocupado2<-subocupado %>%  
+  dplyr::rename(Trimestres = `Trimestre (Código)`) %>%  
+  dplyr::rename(Trimestre = `Trimestre`) %>% 
+  dplyr::rename(Condicao = `Tipo de medida de subutilização da força de trabalho na semana de referência`)
+pessoas_sub_ma<-subocupado2 %>%  
+  filter(`Variável`=="Pessoas de 14 anos ou mais de idade") %>% 
+  filter(`Unidade da Federação e Município`=="Maranhão") %>% 
+  filter(Trimestres>="201401")
+pessoas_sub_ma$Trimestre <-factor(pessoas_sub_ma$Trimestre, levels = unique(pessoas_sub_ma$Trimestre[order(pessoas_sub_ma$Trimestres)]))
+plot2<- ggplot(pessoas_sub_ma, aes(x=Trimestre, y=Valor, color = Condicao, group=1))+
+  geom_line(size=1)+
+  geom_point(size=2)+ 
+  xlab('')+ylab('Em Mil')+
+  labs(title='Condição da Força de Trabalho Maranhense - Gráfico Interativo',
+       caption='Fonte: PNAD Contínua/IBGE. Elaboração: OMT-MA.', 
+       color="")+
+ theme_bw()+ theme(axis.text.x=element_text(angle=90, hjust=1))+
+  theme(legend.title = element_text(color = "#4169e1"))+
+  theme(legend.position="bottom")+
+  theme(plot.title = element_text(color = "#4169e1"))
+ggplotly(plot2)
+```
+
+***
+
+- A população em situação de **subocupação por insuficiência de horas trabalhadas** no Maranhão teve um aumento no 3º. trimestre de 2019, tendência observada desde o primeiro trimestre do ano. Com isso, mais 46 mil pessoas passaram a estar nessa situação no 3º trimestre de 2019. 
+
+- O número de pessoas desocupadas no Maranhão, portanto, teve uma redução que foi acompanhada pelo aumento de pessoas em situação de insuficiência de horas trabalhadas, um reflexo da crise por que passa o país. 
+
+
+
+### __Ocupação por setor de atividade econômica__
+
+
+```{r}
+po2 = get_sidra(api='/t/5434/n3/21/v/4090/p/all/c693/all')
+ 
+  Setor <-po2 %>%  
+  dplyr::rename(Trimestres = `Trimestre (Código)`)%>%  
+  dplyr::rename(Trimestre = `Trimestre`)%>%  
+  dplyr::rename(Atividade = `Grupamento de atividades no trabalho principal - PNADC`)
+  
+  Setor$Trimestre <-factor(Setor$Trimestre, levels =    unique(Setor$Trimestre[order(Setor$Trimestres)]))
+  
+  Setor<-Setor %>% 
+  filter(Atividade!="Total" & Atividade!="Atividades mal definidas", Atividade!= "Outro serviço") %>% filter(Trimestres>="201401")
+
+
+  
+plot3<- ggplot(Setor, aes(x=Trimestre, y=Valor, color = Atividade, group=1))+
+  geom_line(size=.5)+
+  geom_point()+ 
+  xlab('')+ylab('Em Mil')+
+  labs(title='Comportamento da ocupação por setor de atividade econômica no Maranhão - Gráfico Interativo',
+       caption='Fonte: PNAD Contínua/IBGE. Elaboração: OMT-MA.', 
+       color="Clique para selecionar/apagar uma opção")+
+  theme_bw()+ theme(axis.text.x=element_text(angle=90, hjust=1))+
+    theme(legend.position="none")+
+  theme(legend.title = element_text(color = "#4169e1"),
+        plot.title = element_text(color = "#4169e1"))
+ggplotly(plot3)
+```
+
+***
+
+As tendências encontradas nos dados para o Estado do Maranhão mostram que: 
+
+- O **comércio, reparação de veículos automotores e motocicletas** continua a ser o principal setor a ocupar a população no Maranhão, tendência observada em toda a série histórica da Pnad Contínua.
+
+- A **administração, defesa, seguridade social, educação, saúde humana e serviços sociais** é o segundo setor que mais gera ocupação no Maranhão, característica estrutural do Estado. 
+
+- A **agricultura, pecuária, produção florestal, pesca e aquicultura** teve o número de pessoas ocupadas no setor reduzido drasticamente desde 2012, com a eliminação de _*419mil*_ ocupações. Apesar disso, ainda é o 3º setor responsável pelo maior número de ocupados no Estado. Como o setor é importante para amortecer a vulnerabilidade alimentar, é importante análises mais detidas sobre as transformações estruturais que estão ocorrendo no campo maranhense. 
+
+- O setor da **construção** ainda é um dos principais a gerar ocupação no estado, apesar da forte crise no setor, como mostrado em nosso [relatório especial sobre o setor](https://www.omtmaranhao.com/relatoriostematicos).
+
+### __Ocupação por posição na ocupação e categoria do emprego__
+
+```{r}
+po = get_sidra(api='/t/4097/n3/21/v/4090/p/all/c11913/all')
+po_filtro = po %>%  
+    dplyr::rename(Trimestres = `Trimestre (Código)`) %>%  
+    dplyr::rename(Trimestre = `Trimestre`) %>% 
+    dplyr::rename(Categoria = `Posição na ocupação e categoria do emprego no trabalho principal`)
+po_filtro_2 <- po_filtro %>%  
+  filter(`Categoria`!="Total") %>% 
+  filter(Trimestres>="201401")
+
+
+po_filtro_2$Trimestre <-factor(po_filtro_2$Trimestre, levels = unique(po_filtro_2$Trimestre[order(po_filtro_2$Trimestres)]))
+
+plot4<-ggplot(po_filtro_2, aes(x=Trimestre, y=Valor, color = `Categoria`, group=1))+
+  geom_line(size=.5)+
+  geom_point()+ 
+  xlab('')+ylab('Em Mil')+
+  labs(title='Posição na Ocupação e Categoria do Emprego - Gráfico Interativo',
+       caption='Fonte: PNAD Contínua/IBGE. Elaboração: OMT-MA.', 
+       color="Clique para selecionar/apagar uma opção")+
+  theme_bw()+ theme(axis.text.x=element_text(angle=90, hjust=1))+
+  theme(legend.title = element_text(color = "#4169e1"))+
+  theme(legend.position="none")+
+  theme(plot.title = element_text(color = "#4169e1"))
+ggplotly(plot4)
+```
+
+***
+
+- Verifica-se que os **empregados no setor privado** representam, no 3º trimestre de 2019, o maior contingente de pessoas ocupadas no estado desde 2017, com 841 mil pessoas. Esse número, contudo, inclui os ocupados no setor privado que não possuem vínculo de trabalho formal (com carteira) . 
+
+- Os **ocupados no setor privado sem carteira** chegaram a 421 mil, número praticamente igual ao dos **ocupados no setor privado com carteira**, que no 3º trimestre de 2019 eram 420 mil, ou seja, quase 50% dos ocupados no setor privado não possuem vínculo formal de trabalho. 
+
+- O contingente de **trabalhadores por conta própria** representa o segundo maior grupo, com 752 mil pessoas.
+
+- A **Administração Pública**, com 380 mil ocupados no setor, é um dos mais importantes empregadores, seja com vínculos estatutários ou outras modalidades de contratação.   
+
+
+### __Redes Sociais__
+
++ Para mais informações, visite nosso [Site.](https://www.omtmaranhao.com/)
+
++ Estamos no [Instagram](https://www.instagram.com/omtmaranhao/)
+
++ E também no [Facebook](https://www.facebook.com/OMTUFMA/)
+
+
+__Observatório do Mercado de Trabalho do Maranhão (OMT-MA)__
