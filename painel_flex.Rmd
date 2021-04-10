@@ -22,6 +22,7 @@ body{
 
 
 ```{r}
+# install.packages(c("flexdashboard","sidrar", "plotly", "highcharter", "scales"))
 library(flexdashboard)
 library(sidrar)
 library(tidyverse)
@@ -42,6 +43,9 @@ taxa<-dtaxauf %>%
   filter(`Brasil e Unidade da Federação` != "Brasil") %>% 
   filter(`Variável` == "Taxa de desocupação, na semana de referência, das pessoas de 14 anos ou mais de idade") %>% 
   filter(`Trimestre (Código)`==202001)
+  
+  #filter(`Trimestre (Código)` == last(`Trimestre (Código)`)) automatiza para coletar o último valor
+
 taxa<-taxa %>% 
   select(`Brasil e Unidade da Federação`, `Valor`) %>% 
   dplyr::rename(UF= `Brasil e Unidade da Federação`, Taxa = `Valor`) %>% 
